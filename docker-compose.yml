@@ -1,0 +1,24 @@
+services:
+  mongo:
+    image: mongo:7
+    container_name: productos-mongo
+    ports:
+      - "27017:27017"
+    volumes:
+      - mongo-data:/data/db
+
+  sonarqube:
+    image: sonarqube:community
+    container_name: productos-sonarqube
+    ports:
+      - "9000:9000"
+    volumes:
+      - sonar-data:/opt/sonarqube/data
+      - sonar-extensions:/opt/sonarqube/extensions
+      - sonar-logs:/opt/sonarqube/logs
+
+volumes:
+  mongo-data:
+  sonar-data:
+  sonar-extensions:
+  sonar-logs:
