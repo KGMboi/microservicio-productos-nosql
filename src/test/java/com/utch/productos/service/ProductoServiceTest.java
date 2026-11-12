@@ -102,4 +102,38 @@ class ProductoServiceTest {
                 .isInstanceOf(RecursoNoEncontradoException.class)
                 .hasMessageContaining(ID);
     }
+
+    // ------------------------------------------------------------ crear
+
+    @Test
+    @DisplayName("crear guarda el producto con sus datos y fechas de registro")
+    void crear_datosValidos_guardaElProducto() {
+        when(repository.existsBySku("LAP-1001")).thenReturn(false);
+        when(repository.save(any(Producto.class))).thenAnswer(AdditionalAnswers.returnsFirstArg());
+
+        ProductoResponse resultado = service.crear(request);
+
+        ArgumentCaptor<Producto> captor = ArgumentCaptor.forClass(Producto.class);
+        verify(repository).save(captor.capture());
+        Producto guardado = captor.getValue();
+        assertThat(guardado.getNombre()).isEqualTo("Laptop Gamer XYZ");
+        assertThat(guardado.getSku()).isEqualTo("LAP-1001");
+        assertThat(guardado.getPrecio()).isEqualByComparingTo("1200.00");
+        assertThat(guardado.getStock()).isEqualTo(15);
+        assertThat(guardado.getCategoria()).isEqualTo("Computadoras");
+        assertThat(guardado.getCreadoEn()).isNotNull();
+        assertThat(guardado.getActualizadoEn()).isEqualTo(guardado.getCreadoEn());
+        assertThat(resultado.sku()).isEqualTo("LAP-1001");
+    }
+
+    @Test
+    @DisplayName("crear lanza DatoDuplicadoException si el SKU ya existe y no guarda")
+    void crear_skuDuplicado_lanzaExcepcionYNoGuarda() {
+        when(repository.existsBySku("LAP-1001")).thenReturn(true);
+
+        assertThatThrownBy(() -> service.crear(request))
+                .isInstanceOf(DatoDuplicadoException.class)
+                .hasMessageContaining("LAP-1001");
+        verify(repository, never()).save(any(Producto.class));
+    }
 }
