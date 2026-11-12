@@ -136,4 +136,66 @@ class ProductoServiceTest {
                 .hasMessageContaining("LAP-1001");
         verify(repository, never()).save(any(Producto.class));
     }
+
+    // ------------------------------------------------------------ actualizar
+
+    @Test
+    @DisplayName("actualizar modifica los datos y la fecha de actualización")
+    void actualizar_datosValidos_guardaLosCambios() {
+        when(repository.findById(ID)).thenReturn(Optional.of(existente));
+        when(repository.existsBySkuAndIdNot("LAP-1001", ID)).thenReturn(false);
+        when(repository.save(any(Producto.class))).thenAnswer(AdditionalAnswers.returnsFirstArg());
+
+        ProductoResponse resultado = service.actualizar(ID, request);
+
+        assertThat(resultado.id()).isEqualTo(ID);
+        assertThat(resultado.nombre()).isEqualTo("Laptop Gamer XYZ");
+        assertThat(resultado.sku()).isEqualTo("LAP-1001");
+        assertThat(resultado.stock()).isEqualTo(15);
+        assertThat(resultado.creadoEn()).isEqualTo(FECHA_ANTIGUA);
+        assertThat(resultado.actualizadoEn()).isAfter(FECHA_ANTIGUA);
+    }
+
+    @Test
+    @DisplayName("actualizar lanza RecursoNoEncontradoException si el producto no existe")
+    void actualizar_inexistente_lanzaExcepcion() {
+        when(repository.findById(ID)).thenReturn(Optional.empty());
+
+        assertThatThrownBy(() -> service.actualizar(ID, request))
+                .isInstanceOf(RecursoNoEncontradoException.class);
+        verify(repository, never()).save(any(Producto.class));
+    }
+
+    @Test
+    @DisplayName("actualizar lanza DatoDuplicadoException si el SKU pertenece a otro producto")
+    void actualizar_skuDeOtroProducto_lanzaExcepcion() {
+        when(repository.findById(ID)).thenReturn(Optional.of(existente));
+        when(repository.existsBySkuAndIdNot("LAP-1001", ID)).thenReturn(true);
+
+        assertThatThrownBy(() -> service.actualizar(ID, request))
+                .isInstanceOf(DatoDuplicadoException.class);
+        verify(repository, never()).save(any(Producto.class));
+    }
+
+    // ------------------------------------------------------------ eliminar
+
+    @Test
+    @DisplayName("eliminar borra el producto cuando existe")
+    void eliminar_existente_borraElProducto() {
+        when(repository.existsById(ID)).thenReturn(true);
+
+        service.eliminar(ID);
+
+        verify(repository).deleteById(ID);
+    }
+
+    @Test
+    @DisplayName("eliminar lanza RecursoNoEncontradoException si no existe y no borra")
+    void eliminar_inexistente_lanzaExcepcion() {
+        when(repository.existsById(ID)).thenReturn(false);
+
+        assertThatThrownBy(() -> service.eliminar(ID))
+                .isInstanceOf(RecursoNoEncontradoException.class);
+        verify(repository, never()).deleteById(ID);
+    }
 }
