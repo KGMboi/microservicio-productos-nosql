@@ -5,6 +5,7 @@ Práctica de Desarrollo Web Integral, Unidad 3, UTCH.
 Microservicio RESTful con Spring Boot 3.5 (Java 17) y MongoDB que realiza operaciones CRUD sobre productos, con validación de datos, manejo global de excepciones, pruebas unitarias y de integración, cobertura con JaCoCo y análisis estático con SonarQube.
 
 ## Estructura
+src/main/java/com/utch/productos/ controller/ ProductoController, AuthController, GlobalExceptionHandler (@RestControllerAdvice) security/ SecurityConfig, JwtService, JwtAuthenticationFilter, manejadores 401 y 403 service/ ProductoService, AuthService repository/ ProductoRepository, UsuarioRepository (Spring Data MongoDB) model/ Producto, Usuario (@Document) dto/ ProductoRequest (validaciones), ProductoResponse exception/ RecursoNoEncontradoException, DatoDuplicadoException, ApiError src/test/java/com/utch/productos/ service/ ProductoServiceTest, AuthServiceTest (unitarias con Mockito) security/ JwtServiceTest, UsuarioDetailsServiceTest, AdminInitializerTest controller/ ProductoControllerTest (integración web con MockMvc) ProductoApiIntegrationTest (flujo CRUD completo) SeguridadIntegrationTest (autenticación y autorización con la cadena de filtros real)
 
 ## Requisitos
 
@@ -12,7 +13,24 @@ JDK 17 o superior, Maven 3.9 o superior y Docker Desktop (para MongoDB y SonarQu
 
 ## Ejecutar la aplicación
 
-La API queda en `http://localhost:8080/api/v1/productos`. Para usar otra base de datos define la variable `MONGODB_URI`.
+La aplicación necesita la variable de entorno `JWT_SECRET` (llave de firma de los tokens, en Base64 y de al menos 256 bits) y, opcionalmente, `ADMIN_PASSWORD` para crear el usuario administrador al arrancar.
+export JWT_SECRET=$(openssl rand -base64 32) export ADMIN_PASSWORD="elige-una-contraseña-segura" docker compose up -d mongo mvn spring-boot:run
+
+La API queda en `http://localhost:8080/api/v1/productos`. Para usar otra base de datos define la variable `MONGODB_URI`. El usuario administrador se llama `admin` (cámbialo con `ADMIN_USER`).
+
+## Seguridad
+
+La API usa autenticación sin sesión con JSON Web Tokens (JWT) y Spring Security. Las contraseñas se guardan con BCrypt.
+
+| Método | Ruta | Acceso | Descripción |
+| --- | --- | --- | --- |
+| POST | `/api/v1/auth/registro` | Público | Crea un usuario con rol USER |
+| POST | `/api/v1/auth/login` | Público | Devuelve `accessToken` (15 minutos) y `refreshToken` (7 días) |
+| POST | `/api/v1/auth/refresh` | Público | Cambia un refresh token válido por tokens nuevos |
+| GET | `/api/v1/productos/**` | USER o ADMIN | Consultar productos |
+| POST, PUT, DELETE | `/api/v1/productos/**` | ADMIN | Crear, actualizar y eliminar productos |
+
+Las peticiones protegidas llevan el encabezado `Authorization: Bearer <accessToken>`. Sin token, o con un token inválido o expirado, la respuesta es 401; con un rol insuficiente es 403.
 
 ## API
 
@@ -24,7 +42,11 @@ La API queda en `http://localhost:8080/api/v1/productos`. Para usar otra base de
 | PUT | `/api/v1/productos/{id}` | Actualizar un producto | 200 |
 | DELETE | `/api/v1/productos/{id}` | Eliminar un producto | 204 |
 
-Ejemplo:
+Ejemplo (con el token del administrador guardado en `TOKEN`):
+curl -i -X POST http://localhost:8080/api/v1/productos
+-H "Authorization: Bearer $TOKEN"
+-H "Content-Type: application/json"
+-d '{"nombre":"Laptop Gamer XYZ","sku":"LAP-1001","precio":1200.00,"stock":15,"categoria":"Computadoras"}'
 
 ## Validaciones
 
@@ -56,6 +78,11 @@ Todos los errores usan el mismo formato JSON:
 | --- | --- | --- |
 | `VALIDACION_FALLIDA` | 400 | Algún campo no cumple las reglas |
 | `SOLICITUD_MAL_FORMADA` | 400 | El cuerpo no es un JSON válido |
+| `NO_AUTENTICADO` | 401 | Falta el encabezado `Authorization` |
+| `TOKEN_INVALIDO` | 401 | El token está alterado, mal formado o no es de acceso |
+| `TOKEN_EXPIRADO` | 401 | El access token venció; hay que renovarlo |
+| `CREDENCIALES_INVALIDAS` | 401 | Usuario o contraseña incorrectos, o refresh token inválido |
+| `ACCESO_DENEGADO` | 403 | El rol del usuario no permite la operación |
 | `RECURSO_NO_ENCONTRADO` | 404 | No existe el producto (`RecursoNoEncontradoException`) |
 | `RUTA_NO_ENCONTRADA` | 404 | La ruta no existe |
 | `METODO_NO_PERMITIDO` | 405 | Método HTTP no permitido |
@@ -80,4 +107,4 @@ El panel con el resultado del Quality Gate queda en `http://localhost:9000/dashb
 
 ## Flujo de ramas
 
-`main` guarda la versión estable, `develop` integra el trabajo y cada tarea se desarrolló en una rama `feature/*` que se fusionó con `--no-ff`. La versión final está marcada con la etiqueta `v1.0.0`.
+`main` guarda la versión estable, `develop` integra el trabajo y cada tarea se desarrolló en una rama `feature/*` que se fusionó con `--no-ff`. La versión con CRUD y calidad es `v1.0.0` y la que añade autenticación JWT es `v1.1.0`.
