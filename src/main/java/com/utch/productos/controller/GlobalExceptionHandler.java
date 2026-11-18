@@ -9,6 +9,7 @@ import org.slf4j.LoggerFactory;
 import org.springframework.http.HttpStatus;
 import org.springframework.http.ResponseEntity;
 import org.springframework.http.converter.HttpMessageNotReadableException;
+import org.springframework.security.core.AuthenticationException;
 import org.springframework.web.HttpMediaTypeNotSupportedException;
 import org.springframework.web.HttpRequestMethodNotSupportedException;
 import org.springframework.web.bind.MethodArgumentNotValidException;
@@ -33,6 +34,13 @@ public class GlobalExceptionHandler {
     @ExceptionHandler(DatoDuplicadoException.class)
     public ResponseEntity<ApiError> manejarDuplicado(DatoDuplicadoException ex, HttpServletRequest request) {
         return responder(HttpStatus.CONFLICT, "DATO_DUPLICADO", ex.getMessage(), request, null);
+    }
+
+    // Usuario o contraseña incorrectos, o refresh token inválido
+    @ExceptionHandler(AuthenticationException.class)
+    public ResponseEntity<ApiError> manejarCredenciales(AuthenticationException ex, HttpServletRequest request) {
+        return responder(HttpStatus.UNAUTHORIZED, "CREDENCIALES_INVALIDAS",
+                "Las credenciales proporcionadas no son válidas.", request, null);
     }
 
     @ExceptionHandler(MethodArgumentNotValidException.class)
