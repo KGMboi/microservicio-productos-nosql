@@ -10,6 +10,8 @@ import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.boot.test.autoconfigure.web.servlet.AutoConfigureMockMvc;
 import org.springframework.boot.test.context.SpringBootTest;
 import org.springframework.http.MediaType;
+import org.springframework.test.context.DynamicPropertyRegistry;
+import org.springframework.test.context.DynamicPropertySource;
 import org.springframework.test.context.bean.override.mockito.MockitoBean;
 import org.springframework.test.web.servlet.MockMvc;
 
@@ -34,7 +36,7 @@ import static org.springframework.test.web.servlet.result.MockMvcResultMatchers.
 // Prueba de integración del flujo completo: controlador, validación, servicio y manejador de errores.
 // El repositorio de MongoDB se sustituye por una base en memoria para que la prueba no dependa de un servidor.
 @SpringBootTest(properties = "spring.data.mongodb.auto-index-creation=false")
-@AutoConfigureMockMvc
+@AutoConfigureMockMvc(addFilters = false)
 @DisplayName("API de productos: flujo CRUD completo")
 class ProductoApiIntegrationTest {
 
@@ -51,6 +53,12 @@ class ProductoApiIntegrationTest {
     private static final String MOUSE_CON_SKU_DE_LAPTOP = """
             {"nombre":"Mouse Inalámbrico","sku":"LAP-1001","precio":25.50,"stock":120,"categoria":"Accesorios"}
             """;
+
+    // La seguridad se prueba en SeguridadIntegrationTest; aquí se ejercita solo el flujo CRUD
+    @DynamicPropertySource
+    static void propiedades(DynamicPropertyRegistry registry) {
+        registry.add("jwt.secret", () -> TestSecrets.JWT_SECRET);
+    }
 
     @Autowired
     private MockMvc mockMvc;
