@@ -14,7 +14,20 @@ JDK 17 o superior, Maven 3.9 o superior y Docker Desktop (para MongoDB y SonarQu
 ## Ejecutar la aplicación
 
 La aplicación necesita la variable de entorno `JWT_SECRET` (llave de firma de los tokens, en Base64 y de al menos 256 bits) y, opcionalmente, `ADMIN_PASSWORD` para crear el usuario administrador al arrancar.
-export JWT_SECRET=$(openssl rand -base64 32) export ADMIN_PASSWORD="elige-una-contraseña-segura" docker compose up -d mongo mvn spring-boot:run
+
+En Bash o Git Bash:
+
+```bash
+./run.sh
+```
+
+En PowerShell:
+
+```powershell
+.\run.ps1
+```
+
+Los scripts usan el puerto `8080` si está libre. Si ya está ocupado, usan `8081` automáticamente.
 
 La API queda en `http://localhost:8080/api/v1/productos`. Para usar otra base de datos define la variable `MONGODB_URI`. El usuario administrador se llama `admin` (cámbialo con `ADMIN_USER`).
 
